@@ -7,6 +7,7 @@ import {
   IconButton,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   Toolbar,
@@ -24,9 +25,15 @@ import {
   Description,
   ExitToApp,
   Add,
+  Person,
+  Google,
+  DirectionsRun,
+  EventNote,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 
 const drawerWidth = 240;
 
@@ -49,39 +56,32 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
-  const menuItems = [
-    {
-      text: 'Dashboard',
-      icon: <Dashboard />,
-      path: '/dashboard',
-    },
-    {
-      text: 'Patients',
-      icon: <People />,
-      path: '/patients',
-      role: 'professional',
-    },
-    {
-      text: 'Measurements',
-      icon: <Assessment />,
-      path: '/measurements',
-    },
-    {
-      text: 'Performance',
-      icon: <FitnessCenter />,
-      path: '/performance',
-    },
-    {
-      text: 'Health',
-      icon: <HealthAndSafety />,
-      path: '/health',
-    },
-    {
-      text: 'Reports',
-      icon: <Description />,
-      path: '/reports',
-    },
+  const commonTopItems = [
+    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+    { text: 'Calendar', icon: <EventNoteIcon />, path: '/calendar' },
+    { text: 'Profile', icon: <Person />, path: '/profile' },
   ];
+
+  const professionalNavItems = [
+    ...commonTopItems,
+    { text: 'ISAK Measurements', icon: <AssessmentIcon />, path: '/isak' },
+    { text: 'Patients', icon: <People />, path: '/patients' },
+    { text: 'Measurements', icon: <Assessment />, path: '/measurements' },
+    { text: 'Performance', icon: <FitnessCenter />, path: '/performance' },
+    { text: 'Health Metrics', icon: <HealthAndSafety />, path: '/health' },
+    { text: 'Reports', icon: <Description />, path: '/reports' },
+  ];
+
+  const athleteNavItems = [
+    ...commonTopItems,
+    { text: 'My Measurements', icon: <Assessment />, path: '/measurements' },
+    { text: 'My Performance', icon: <FitnessCenter />, path: '/performance' },
+    { text: 'My Health', icon: <HealthAndSafety />, path: '/health' },
+    { text: 'Google Fit', icon: <Google />, path: '/google-fit' },
+    { text: 'Strava Data', icon: <DirectionsRun />, path: '/strava' },
+  ];
+
+  const navItems = user?.role === 'professional' ? professionalNavItems : athleteNavItems;
 
   const drawer = (
     <Box>
@@ -92,8 +92,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Toolbar>
       <Divider />
       <List>
-        {menuItems.map((item) => {
-          if (item.role && item.role !== user?.role) return null;
+        {navItems.map((item) => {
           return (
             <ListItem
               button

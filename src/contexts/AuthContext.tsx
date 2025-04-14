@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthResponse } from '../types';
 import { auth } from '../services/api';
+import { AxiosResponse } from 'axios';
 
 interface AuthContextType {
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   loading: boolean;
   error: string | null;
   token: string | null;
@@ -39,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!refreshToken) throw new Error('No refresh token');
 
       const response = await auth.refreshToken(refreshToken);
-      handleAuthResponse(response.data);
+      handleAuthResponse(response);
     } catch (err) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
@@ -49,11 +51,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleAuthResponse = (response: AuthResponse) => {
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('refreshToken', response.refreshToken);
-    setToken(response.token);
-    setUser(response.user);
+  const handleAuthResponse = (response: AxiosResponse<AuthResponse>) => {
+    const { token, refreshToken, user } = response.data;
+    console.log('AuthContext handleAuthResponse received user:', user);
+    console.log('AuthContext handleAuthResponse received token:', token);
+    localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    setToken(token);
     setError(null);
     setLoading(false);
   };
@@ -63,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const response = await auth.login(email, password);
-      handleAuthResponse(response.data);
+      handleAuthResponse(response);
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Login failed');
       setLoading(false);
@@ -76,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const response = await auth.register(data);
-      handleAuthResponse(response.data);
+      handleAuthResponse(response);
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Registration failed');
       setLoading(false);
@@ -95,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
         error,
         token,

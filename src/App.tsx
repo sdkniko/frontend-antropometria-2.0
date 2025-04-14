@@ -17,7 +17,16 @@ import PerformanceList from './components/performance/PerformanceList';
 import AddHealthForm from './components/health/AddHealthForm';
 import HealthList from './components/health/HealthList';
 import ReportsList from './components/reports/ReportsList';
+import UserProfile from './components/profile/UserProfile';
+import GoogleFitData from './components/googlefit/GoogleFitData';
 import { SnackbarProvider } from 'notistack';
+// import HealthDataPage from './components/health/HealthDataPage';
+import StravaDataPage from './components/strava/StravaDataPage';
+// import ReportsPage from './components/reports/ReportsPage';
+// import SettingsPage from './components/settings/SettingsPage';
+import CalendarPage from './components/calendar/CalendarPage';
+import ISAKList from './components/isak/ISAKList';
+import ISAKForm from './components/isak/ISAKForm';
 
 const theme = createTheme({
   palette: {
@@ -68,6 +77,14 @@ const App: React.FC = () => {
                 element={
                   <PrivateRoute>
                     <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <PrivateRoute>
+                    <UserProfile />
                   </PrivateRoute>
                 }
               />
@@ -151,6 +168,11 @@ const App: React.FC = () => {
                   </PrivateRoute>
                 }
               />
+              <Route path="/google-fit" element={<PrivateRoute><GoogleFitData /></PrivateRoute>} />
+              <Route path="/strava" element={<PrivateRoute><StravaDataPage /></PrivateRoute>} />
+              <Route path="/calendar" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
+              <Route path="/isak" element={<PrivateRoute><ISAKList /></PrivateRoute>} />
+              <Route path="/isak/new" element={<PrivateRoute><ISAKForm /></PrivateRoute>} />
               <Route path="/" element={<Navigate to="/dashboard" />} />
             </Routes>
           </Router>

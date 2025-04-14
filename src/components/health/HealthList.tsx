@@ -17,13 +17,22 @@ import {
   DialogContent,
   DialogActions,
   Grid,
+  DialogContentText,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
+import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import RouteIcon from '@mui/icons-material/Route';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../../contexts/AuthContext';
 import { health, users } from '../../services/api'; // Use health API
 import { HealthMetrics, User } from '../../types'; // Use HealthMetrics type
 import { useNavigate } from 'react-router-dom';
 import format from 'date-fns/format';
+import { formatDistance } from '../../utils/formatters';
 
 const HealthList: React.FC = () => {
   const { user } = useAuth();
@@ -31,8 +40,13 @@ const HealthList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [healthData, setHealthData] = useState<HealthMetrics[]>([]);
   const [patients, setPatients] = useState<User[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedHealth, setSelectedHealth] = useState<HealthMetrics | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<HealthMetrics | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,14 +82,48 @@ const HealthList: React.FC = () => {
     return patient ? patient.name : 'Unknown';
   };
 
-  const handleOpenModal = (item: HealthMetrics) => {
+  const handleOpenDetailsModal = (item: HealthMetrics) => {
     setSelectedHealth(item);
-    setModalOpen(true);
+    setDetailsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
+  const handleCloseDetailsModal = () => {
+    setDetailsModalOpen(false);
     setSelectedHealth(null);
+  };
+
+  const handleOpenDeleteConfirm = (item: HealthMetrics) => {
+    setItemToDelete(item);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setItemToDelete(null);
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await health.delete(itemToDelete._id);
+      setHealthData(prevData => prevData.filter(item => item._id !== itemToDelete._id));
+      setSnackbarMessage('Health record deleted successfully');
+      setSnackbarSeverity('success');
+    } catch (error: any) {
+      console.error('Error deleting health record:', error);
+      setSnackbarMessage(error.response?.data?.message || 'Failed to delete health record');
+      setSnackbarSeverity('error');
+    } finally {
+      setSnackbarOpen(true);
+      handleCloseDeleteConfirm();
+    }
+  };
+
+  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
   };
 
   if (loading) {
@@ -115,7 +163,10 @@ const HealthList: React.FC = () => {
                 <TableCell>Sleep (h)</TableCell>
                 <TableCell>Sleep Quality</TableCell>
                 <TableCell>Steps</TableCell>
-                <TableCell>Details</TableCell>
+                <TableCell>Distance</TableCell>
+                <TableCell>Calories (kcal)</TableCell>
+                <TableCell>Active Mins</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -130,9 +181,15 @@ const HealthList: React.FC = () => {
                   <TableCell>{item.sleep?.duration ?? '-'}</TableCell>
                   <TableCell>{item.sleep?.quality ?? '-'}</TableCell>
                   <TableCell>{item.steps ?? '-'}</TableCell>
+                  <TableCell>{item.distance ? formatDistance(item.distance) : '-'}</TableCell>
+                  <TableCell>{item.calories?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '-'}</TableCell>
+                  <TableCell>{item.activeMinutes?.toLocaleString() ?? '-'}</TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => handleOpenModal(item)}>
+                    <IconButton size="small" onClick={() => handleOpenDetailsModal(item)} title="View Details">
                       <InfoIcon />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleOpenDeleteConfirm(item)} color="error" title="Delete Record">
+                      <DeleteIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -142,7 +199,7 @@ const HealthList: React.FC = () => {
         </TableContainer>
       )}
 
-      <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+      <Dialog open={detailsModalOpen} onClose={handleCloseDetailsModal} maxWidth="sm" fullWidth>
         <DialogTitle>Health Details</DialogTitle>
         <DialogContent>
           {selectedHealth && (
@@ -154,7 +211,10 @@ const HealthList: React.FC = () => {
                   <Grid item xs={6}><Typography>Stress: {selectedHealth.stress ?? '-'}</Typography></Grid>
                   <Grid item xs={6}><Typography>Resting HR: {selectedHealth.restingHeartRate ?? '-'}</Typography></Grid>
                   <Grid item xs={6}><Typography>HRV: {selectedHealth.heartRateVariability ?? '-'}</Typography></Grid>
-                  <Grid item xs={6}><Typography>Steps: {selectedHealth.steps ?? '-'}</Typography></Grid>
+                  <Grid item xs={6}><Typography>Steps: {selectedHealth.steps?.toLocaleString() ?? '-'}</Typography></Grid>
+                  <Grid item xs={6}><Typography>Distance: {selectedHealth.distance ? formatDistance(selectedHealth.distance) : '-'}</Typography></Grid>
+                  <Grid item xs={6}><Typography>Calories: {selectedHealth.calories?.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? '-'} kcal</Typography></Grid>
+                  <Grid item xs={6}><Typography>Active Minutes: {selectedHealth.activeMinutes?.toLocaleString() ?? '-'} min</Typography></Grid>
               </Grid>
               {selectedHealth.sleep && (
                 <>
@@ -178,9 +238,37 @@ const HealthList: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseModal}>Close</Button>
+          <Button onClick={handleCloseDetailsModal}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCloseDeleteConfirm}
+        aria-labelledby="delete-confirmation-title"
+        aria-describedby="delete-confirmation-description"
+      >
+        <DialogTitle id="delete-confirmation-title">
+          Confirm Deletion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-confirmation-description">
+            Are you sure you want to delete this health record dated {itemToDelete ? format(new Date(itemToDelete.date), 'PPP') : ''}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteConfirm}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

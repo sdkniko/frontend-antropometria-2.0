@@ -20,10 +20,10 @@ import {
   Grid,
 } from '@mui/material';
 import { users, health } from '../../services/api';
-import { User } from '../../types';
+import { User, HealthMetrics } from '../../types';
 import { useNavigate } from 'react-router-dom';
 
-interface HealthData {
+interface HealthDataFormValues {
   userId?: string;
   date: string;
   sleep: {
@@ -40,7 +40,7 @@ interface HealthData {
   };
   steps: number;
   notes?: string;
-  source: 'garmin' | 'google_fit' | 'apple_health';
+  source: HealthMetrics['source'];
 }
 
 const AddHealthForm: React.FC = () => {
@@ -75,7 +75,7 @@ const AddHealthForm: React.FC = () => {
     fetchPatients();
   }, [user]);
 
-  const formik = useFormik<HealthData>({
+  const formik = useFormik<HealthDataFormValues>({
     initialValues: {
       date: new Date().toISOString().split('T')[0],
       sleep: {
@@ -91,7 +91,7 @@ const AddHealthForm: React.FC = () => {
         heartRateVariability: 0,
       },
       steps: 0,
-      source: 'garmin',
+      source: 'manual',
     },
     validationSchema: Yup.object({
       userId: Yup.string().required('Patient is required'),
@@ -133,7 +133,9 @@ const AddHealthForm: React.FC = () => {
       steps: Yup.number()
         .min(0, 'Steps must be positive')
         .required('Steps count is required'),
-      source: Yup.string().oneOf(['garmin', 'google_fit', 'apple_health']).required('Data source is required'),
+      source: Yup.string()
+        .oneOf(['garmin', 'googlefit', 'apple_health', 'manual'] as const)
+        .required('Data source is required'),
     }),
     onSubmit: async (values, { setErrors }) => {
       try {
@@ -144,19 +146,23 @@ const AddHealthForm: React.FC = () => {
           return;
         }
 
-        // Format the data for submission
-        const formattedData = {
-          ...values,
+        const formattedData: Omit<HealthMetrics, '_id'> = {
           date: new Date(values.date),
-          userId: user.role === 'professional' ? values.userId! : user._id,
-          professionalId: user.role === 'professional' ? user._id : undefined,
+          steps: values.steps,
+          source: values.source,
+          notes: values.notes || undefined,
+          sleep: values.sleep,
+          stress: values.heart.stressLevel,
+          restingHeartRate: values.heart.restingHeartRate,
+          heartRateVariability: values.heart.heartRateVariability,
+          userId: user.role === 'professional' ? values.userId! : user._id
         };
 
         await health.create(formattedData);
         setSnackbarMessage('Health data added successfully');
         setSnackbarSeverity('success');
         setOpenSnackbar(true);
-        navigate('/dashboard');
+        navigate('/health');
       } catch (error: any) {
         console.error('Error creating health data:', error);
         if (error.response?.data?.error?.details) {
@@ -398,22 +404,6 @@ const AddHealthForm: React.FC = () => {
                   helperText={formik.touched.steps && formik.errors.steps}
                   inputProps={{ min: 0 }}
                 />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControl fullWidth error={formik.touched.source && Boolean(formik.errors.source)}>
-                  <FormLabel>Data Source</FormLabel>
-                  <Select
-                    value={formik.values.source}
-                    onChange={formik.handleChange}
-                    name="source"
-                  >
-                    <MenuItem value="garmin">Garmin</MenuItem>
-                    <MenuItem value="google_fit">Google Fit</MenuItem>
-                    <MenuItem value="apple_health">Apple Health</MenuItem>
-                  </Select>
-                  <FormHelperText>{formik.errors.source}</FormHelperText>
-                </FormControl>
               </Grid>
             </Grid>
 
