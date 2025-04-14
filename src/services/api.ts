@@ -2,8 +2,8 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { User, AnthropometricMeasurement, PerformanceMetrics, HealthMetrics, Report, AuthResponse, PaginatedResponse, ISAKMeasurement, ISAKMeasurementInput } from '../types';
 import * as integrationFuncs from './integrationService'; // Import all functions
 
-// Use environment variable for local API, otherwise default to localhost:5000
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use environment variable for local API, otherwise use deployed backend
+const API_URL = process.env.REACT_APP_API_URL || 'https://backend-antropometria-2-0.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_URL,

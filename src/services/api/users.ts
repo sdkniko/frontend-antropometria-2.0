@@ -55,7 +55,7 @@ class UsersAPI {
 }
 
 export const users = new UsersAPI(
-  process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  process.env.REACT_APP_API_URL || 'https://backend-antropometria-2-0.vercel.app/api',
   () => ({
     'Content-Type': 'application/json',
     Authorization: `Bearer ${localStorage.getItem('token')}`,
